@@ -415,9 +415,316 @@ class EP_Ajax_Handlers {
             'thumb' => wp_get_attachment_image_url($attachment_id, 'thumbnail'),
         ));
     }
+
+    /**
+     * Handle get leaderboard AJAX request
+     */
+    public static function get_leaderboard() {
+        check_ajax_referer('epic_prompts_nonce', 'nonce');
+
+        $type = isset($_POST['type']) ? sanitize_text_field($_POST['type']) : 'total';
+        $limit = isset($_POST['limit']) ? intval($_POST['limit']) : 50;
+
+        // Check cache first
+        $cache_key = 'epic_prompts_leaderboard_' . $type . '_' . $limit;
+        $cached_data = get_transient($cache_key);
+
+        if ($cached_data !== false) {
+            wp_send_json_success(array(
+                'leaderboard' => $cached_data,
+                'cached' => true
+            ));
+        }
+
+        // Get leaderboard data
+        $leaderboard = EP_XP_System::get_leaderboard($limit, $type);
+
+        // Format data for frontend
+        $formatted_data = array();
+        foreach ($leaderboard as $entry) {
+            $formatted_data[] = array(
+                'rank' => $entry['rank'],
+                'user_id' => $entry['user_id'],
+                'username' => $entry['username'],
+                'avatar' => $entry['avatar'],
+                'level' => $entry['level'],
+                'title' => $entry['title'],
+                'xp' => $entry['xp'],
+                'xp_formatted' => epic_prompts_format_number($entry['xp']),
+                'profile_url' => get_author_posts_url($entry['user_id'])
+            );
+        }
+
+        // Cache for 5 minutes
+        set_transient($cache_key, $formatted_data, 5 * MINUTE_IN_SECONDS);
+
+        wp_send_json_success(array(
+            'leaderboard' => $formatted_data,
+            'cached' => false
+        ));
+    }
+
+    /**
+     * Handle bookmark/save prompt AJAX request
+     */
+    public static function bookmark_prompt() {
+        check_ajax_referer('epic_prompts_nonce', 'nonce');
+
+        $user_id = get_current_user_id();
+
+        if (!$user_id) {
+            wp_send_json_error(array('message' => __('You must be logged in.', 'epic-prompts')));
+        }
+
+        $prompt_id = isset($_POST['prompt_id']) ? intval($_POST['prompt_id']) : 0;
+
+        if (!$prompt_id || !get_post($prompt_id)) {
+            wp_send_json_error(array('message' => __('Invalid prompt.', 'epic-prompts')));
+        }
+
+        // Get user's saved prompts
+        $saved_prompts = get_user_meta($user_id, 'saved_prompts', true);
+        if (!is_array($saved_prompts)) {
+            $saved_prompts = array();
+        }
+
+        $is_saved = in_array($prompt_id, $saved_prompts);
+
+        if ($is_saved) {
+            // Remove bookmark
+            $saved_prompts = array_diff($saved_prompts, array($prompt_id));
+            $message = __('Bookmark removed!', 'epic-prompts');
+            $action = 'removed';
+
+            // Decrement save count
+            $saves = (int) get_post_meta($prompt_id, 'saves_count', true);
+            update_post_meta($prompt_id, 'saves_count', max(0, $saves - 1));
+        } else {
+            // Add bookmark
+            $saved_prompts[] = $prompt_id;
+            $message = __('Prompt bookmarked!', 'epic-prompts');
+            $action = 'added';
+
+            // Increment save count
+            $saves = (int) get_post_meta($prompt_id, 'saves_count', true);
+            update_post_meta($prompt_id, 'saves_count', $saves + 1);
+
+            // Award XP for first bookmark
+            $bookmarks_count = count($saved_prompts);
+            if ($bookmarks_count === 1) {
+                EP_User_Functions::award_badge($user_id, 'first_bookmark', 'Collector');
+            }
+        }
+
+        update_user_meta($user_id, 'saved_prompts', array_values($saved_prompts));
+
+        wp_send_json_success(array(
+            'message' => $message,
+            'is_saved' => !$is_saved,
+            'action' => $action,
+            'saves_count' => (int) get_post_meta($prompt_id, 'saves_count', true)
+        ));
+    }
+
+    /**
+     * Handle copy prompt AJAX request (track usage)
+     */
+    public static function copy_prompt() {
+        check_ajax_referer('epic_prompts_nonce', 'nonce');
+
+        $prompt_id = isset($_POST['prompt_id']) ? intval($_POST['prompt_id']) : 0;
+
+        if (!$prompt_id) {
+            wp_send_json_error();
+        }
+
+        // Increment copy count
+        $copies = (int) get_post_meta($prompt_id, 'copies_count', true);
+        update_post_meta($prompt_id, 'copies_count', $copies + 1);
+
+        // Track user copy if logged in
+        $user_id = get_current_user_id();
+        if ($user_id) {
+            EP_User_Functions::increment_stat($user_id, 'prompts_copied');
+        }
+
+        wp_send_json_success(array(
+            'copies' => $copies + 1,
+            'message' => __('Prompt copied to clipboard!', 'epic-prompts')
+        ));
+    }
+
+    /**
+     * Handle share prompt tracking
+     */
+    public static function share_prompt() {
+        check_ajax_referer('epic_prompts_nonce', 'nonce');
+
+        $prompt_id = isset($_POST['prompt_id']) ? intval($_POST['prompt_id']) : 0;
+        $platform = isset($_POST['platform']) ? sanitize_text_field($_POST['platform']) : '';
+
+        if (!$prompt_id) {
+            wp_send_json_error();
+        }
+
+        // Increment share count
+        $shares = (int) get_post_meta($prompt_id, 'shares_count', true);
+        update_post_meta($prompt_id, 'shares_count', $shares + 1);
+
+        // Track platform-specific shares
+        $platform_key = 'shares_' . $platform;
+        $platform_shares = (int) get_post_meta($prompt_id, $platform_key, true);
+        update_post_meta($prompt_id, $platform_key, $platform_shares + 1);
+
+        // Track user shares if logged in
+        $user_id = get_current_user_id();
+        if ($user_id) {
+            EP_User_Functions::increment_stat($user_id, 'prompts_shared');
+
+            // Award badge for sharing
+            $total_shared = (int) get_user_meta($user_id, 'prompts_shared', true);
+            if ($total_shared === 1) {
+                EP_User_Functions::award_badge($user_id, 'first_share', 'Influencer');
+            }
+        }
+
+        wp_send_json_success(array(
+            'shares' => $shares + 1,
+            'message' => __('Thanks for sharing!', 'epic-prompts')
+        ));
+    }
+
+    /**
+     * Handle search prompts AJAX request
+     */
+    public static function search_prompts() {
+        check_ajax_referer('epic_prompts_nonce', 'nonce');
+
+        $search_term = isset($_POST['search']) ? sanitize_text_field($_POST['search']) : '';
+        $platform = isset($_POST['platform']) ? intval($_POST['platform']) : 0;
+        $category = isset($_POST['category']) ? intval($_POST['category']) : 0;
+        $prompt_type = isset($_POST['prompt_type']) ? intval($_POST['prompt_type']) : 0;
+        $sort_by = isset($_POST['sort_by']) ? sanitize_text_field($_POST['sort_by']) : 'recent';
+        $page = isset($_POST['page']) ? intval($_POST['page']) : 1;
+
+        $args = array(
+            'post_type' => 'ai_prompt',
+            'post_status' => 'publish',
+            'posts_per_page' => 12,
+            'paged' => $page,
+        );
+
+        // Search
+        if (!empty($search_term)) {
+            $args['s'] = $search_term;
+        }
+
+        // Taxonomies
+        $tax_query = array();
+
+        if ($platform) {
+            $tax_query[] = array(
+                'taxonomy' => 'ai_platform',
+                'field' => 'term_id',
+                'terms' => $platform,
+            );
+        }
+
+        if ($category) {
+            $tax_query[] = array(
+                'taxonomy' => 'prompt_category',
+                'field' => 'term_id',
+                'terms' => $category,
+            );
+        }
+
+        if ($prompt_type) {
+            $tax_query[] = array(
+                'taxonomy' => 'prompt_type',
+                'field' => 'term_id',
+                'terms' => $prompt_type,
+            );
+        }
+
+        if (!empty($tax_query)) {
+            $args['tax_query'] = $tax_query;
+        }
+
+        // Sorting
+        switch ($sort_by) {
+            case 'popular':
+                $args['meta_key'] = 'views_count';
+                $args['orderby'] = 'meta_value_num';
+                $args['order'] = 'DESC';
+                break;
+            case 'rated':
+                $args['meta_key'] = 'rating_avg';
+                $args['orderby'] = 'meta_value_num';
+                $args['order'] = 'DESC';
+                break;
+            case 'saved':
+                $args['meta_key'] = 'saves_count';
+                $args['orderby'] = 'meta_value_num';
+                $args['order'] = 'DESC';
+                break;
+            case 'recent':
+            default:
+                $args['orderby'] = 'date';
+                $args['order'] = 'DESC';
+                break;
+        }
+
+        $query = new WP_Query($args);
+
+        $results = array();
+
+        if ($query->have_posts()) {
+            while ($query->have_posts()) {
+                $query->the_post();
+
+                $prompt_id = get_the_ID();
+                $reactions = epic_prompts_get_reactions($prompt_id);
+                $platforms = get_the_terms($prompt_id, 'ai_platform');
+
+                $results[] = array(
+                    'id' => $prompt_id,
+                    'title' => get_the_title(),
+                    'url' => get_permalink(),
+                    'excerpt' => get_the_excerpt(),
+                    'author' => array(
+                        'name' => get_the_author(),
+                        'url' => get_author_posts_url(get_the_author_meta('ID'))
+                    ),
+                    'platform' => $platforms && !is_wp_error($platforms) ? $platforms[0]->name : '',
+                    'reactions_total' => array_sum($reactions),
+                    'views' => (int) get_post_meta($prompt_id, 'views_count', true),
+                    'saves' => (int) get_post_meta($prompt_id, 'saves_count', true),
+                    'rating' => (float) get_post_meta($prompt_id, 'rating_avg', true),
+                    'date' => get_the_date('c')
+                );
+            }
+            wp_reset_postdata();
+        }
+
+        wp_send_json_success(array(
+            'results' => $results,
+            'total' => $query->found_posts,
+            'pages' => $query->max_num_pages,
+            'current_page' => $page
+        ));
+    }
 }
 
 // Register additional AJAX handlers
 add_action('wp_ajax_increment_views', array('EP_Ajax_Handlers', 'increment_views'));
 add_action('wp_ajax_nopriv_increment_views', array('EP_Ajax_Handlers', 'increment_views'));
 add_action('wp_ajax_upload_prompt_image', array('EP_Ajax_Handlers', 'upload_prompt_image'));
+add_action('wp_ajax_get_leaderboard', array('EP_Ajax_Handlers', 'get_leaderboard'));
+add_action('wp_ajax_nopriv_get_leaderboard', array('EP_Ajax_Handlers', 'get_leaderboard'));
+add_action('wp_ajax_bookmark_prompt', array('EP_Ajax_Handlers', 'bookmark_prompt'));
+add_action('wp_ajax_copy_prompt', array('EP_Ajax_Handlers', 'copy_prompt'));
+add_action('wp_ajax_nopriv_copy_prompt', array('EP_Ajax_Handlers', 'copy_prompt'));
+add_action('wp_ajax_share_prompt', array('EP_Ajax_Handlers', 'share_prompt'));
+add_action('wp_ajax_nopriv_share_prompt', array('EP_Ajax_Handlers', 'share_prompt'));
+add_action('wp_ajax_search_prompts', array('EP_Ajax_Handlers', 'search_prompts'));
+add_action('wp_ajax_nopriv_search_prompts', array('EP_Ajax_Handlers', 'search_prompts'));

@@ -123,19 +123,25 @@ get_header();
 
 <script>
 jQuery(document).ready(function($) {
-    // Leaderboard tabs (simple client-side for now, can make AJAX later)
+    // Leaderboard tabs with dynamic content loading
     $('.leaderboard-tab').on('click', function() {
-        var type = $(this).data('type');
+        var $tab = $(this);
+        var type = $tab.data('type');
 
+        // Update tab styles
         $('.leaderboard-tab').removeClass('active').css({
             'background': 'transparent',
             'color': '#6366F1'
         });
 
-        $(this).addClass('active').css({
+        $tab.addClass('active').css({
             'background': '#6366F1',
             'color': 'white'
         });
+
+        // Show loading state
+        var $content = $('#leaderboard-content');
+        $content.css('opacity', '0.5');
 
         // AJAX call to get leaderboard data
         $.ajax({
@@ -144,16 +150,78 @@ jQuery(document).ready(function($) {
             data: {
                 action: 'get_leaderboard',
                 nonce: epicPromptsTheme.nonce,
-                type: type
+                type: type,
+                limit: 50
             },
             success: function(response) {
-                if (response.success) {
-                    // Update leaderboard content (would need server endpoint)
-                    console.log('Leaderboard data:', response.data);
+                if (response.success && response.data.leaderboard) {
+                    updateLeaderboard(response.data.leaderboard);
                 }
+                $content.css('opacity', '1');
+            },
+            error: function() {
+                $content.css('opacity', '1');
+                alert('Error loading leaderboard. Please try again.');
             }
         });
     });
+
+    function updateLeaderboard(leaderboard) {
+        var $content = $('#leaderboard-content');
+
+        if (leaderboard.length === 0) {
+            $content.html(
+                '<div style="text-align: center; padding: 4rem 0;">' +
+                '<p style="font-size: 1.25rem; color: #6B7280;">No users in the leaderboard yet. Be the first!</p>' +
+                '</div>'
+            );
+            return;
+        }
+
+        var html = '<div class="leaderboard-table">';
+
+        leaderboard.forEach(function(entry) {
+            var medal = '';
+            var topClass = '';
+
+            if (entry.rank === 1) {
+                medal = '🥇';
+                topClass = 'top-3';
+            } else if (entry.rank === 2) {
+                medal = '🥈';
+                topClass = 'top-3';
+            } else if (entry.rank === 3) {
+                medal = '🥉';
+                topClass = 'top-3';
+            } else {
+                medal = '#' + entry.rank;
+            }
+
+            html += '<div class="leaderboard-row" style="animation: fadeIn 0.3s ease-in-out;">';
+            html += '    <div class="rank-number ' + topClass + '">' + medal + '</div>';
+            html += '    <div class="user-info">';
+            html += '        <img src="' + entry.avatar + '" alt="' + entry.username + '" class="user-avatar">';
+            html += '        <div>';
+            html += '            <div style="font-weight: 600; font-size: 1.125rem;">';
+            html += '                <a href="' + entry.profile_url + '">' + entry.username + '</a>';
+            html += '            </div>';
+            html += '            <div style="color: #6B7280; font-size: 0.875rem;">' + entry.title + '</div>';
+            html += '        </div>';
+            html += '    </div>';
+            html += '    <div style="text-align: center;"><span class="level-badge">Lv ' + entry.level + '</span></div>';
+            html += '    <div style="text-align: right; font-weight: 700; color: #6366F1; font-size: 1.25rem;">' + entry.xp_formatted + ' XP</div>';
+            html += '</div>';
+        });
+
+        html += '</div>';
+
+        $content.html(html);
+    }
+
+    // Add fadeIn animation
+    var style = document.createElement('style');
+    style.textContent = '@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }';
+    document.head.appendChild(style);
 });
 </script>
 

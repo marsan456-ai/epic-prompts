@@ -256,6 +256,289 @@
             }).trigger('input');
         });
 
+        /**
+         * Bookmark/Save Prompt
+         */
+        $(document).on('click', '.bookmark-btn', function(e) {
+            e.preventDefault();
+
+            if (!epicPromptsTheme.is_logged_in) {
+                showNotification('Please login to bookmark prompts', 'error');
+                window.location.href = epicPromptsTheme.login_url || '/wp-login.php';
+                return;
+            }
+
+            var $btn = $(this);
+            var promptId = $btn.data('prompt-id');
+            var $icon = $btn.find('.bookmark-icon');
+            var $count = $btn.find('.bookmark-count');
+
+            $.ajax({
+                url: epicPromptsTheme.ajaxurl,
+                type: 'POST',
+                data: {
+                    action: 'bookmark_prompt',
+                    nonce: epicPromptsTheme.nonce,
+                    prompt_id: promptId
+                },
+                beforeSend: function() {
+                    $btn.prop('disabled', true);
+                },
+                success: function(response) {
+                    if (response.success) {
+                        // Toggle bookmark state
+                        if (response.data.is_saved) {
+                            $btn.addClass('saved');
+                            $icon.text('🔖'); // Filled bookmark
+                        } else {
+                            $btn.removeClass('saved');
+                            $icon.text('📑'); // Empty bookmark
+                        }
+
+                        // Update count
+                        if ($count.length) {
+                            $count.text(response.data.saves_count);
+                        }
+
+                        showNotification(response.data.message, 'success');
+                    } else {
+                        showNotification(response.data.message || 'Error bookmarking prompt', 'error');
+                    }
+                },
+                error: function() {
+                    showNotification('Network error. Please try again.', 'error');
+                },
+                complete: function() {
+                    $btn.prop('disabled', false);
+                }
+            });
+        });
+
+        /**
+         * Copy Prompt to Clipboard
+         */
+        $(document).on('click', '.copy-prompt-btn', function(e) {
+            e.preventDefault();
+
+            var $btn = $(this);
+            var promptText = $btn.data('prompt-text');
+            var promptId = $btn.data('prompt-id');
+
+            // Copy to clipboard
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(promptText).then(function() {
+                    // Track copy action
+                    $.ajax({
+                        url: epicPromptsTheme.ajaxurl,
+                        type: 'POST',
+                        data: {
+                            action: 'copy_prompt',
+                            nonce: epicPromptsTheme.nonce,
+                            prompt_id: promptId
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                // Update copy count if element exists
+                                var $count = $btn.find('.copy-count');
+                                if ($count.length && response.data.copies) {
+                                    $count.text(response.data.copies);
+                                }
+                            }
+                        }
+                    });
+
+                    // Visual feedback
+                    var originalText = $btn.html();
+                    $btn.html('✅ Copied!');
+                    setTimeout(function() {
+                        $btn.html(originalText);
+                    }, 2000);
+
+                    showNotification('Prompt copied to clipboard! 📋', 'success');
+                }).catch(function(err) {
+                    console.error('Copy failed:', err);
+                    showNotification('Failed to copy. Please try again.', 'error');
+                });
+            } else {
+                // Fallback for older browsers
+                var textarea = document.createElement('textarea');
+                textarea.value = promptText;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+
+                try {
+                    document.execCommand('copy');
+                    showNotification('Prompt copied to clipboard! 📋', 'success');
+
+                    // Track copy
+                    $.post(epicPromptsTheme.ajaxurl, {
+                        action: 'copy_prompt',
+                        nonce: epicPromptsTheme.nonce,
+                        prompt_id: promptId
+                    });
+                } catch (err) {
+                    showNotification('Failed to copy. Please try again.', 'error');
+                }
+
+                document.body.removeChild(textarea);
+            }
+        });
+
+        /**
+         * Share Prompt
+         */
+        $(document).on('click', '.share-btn', function(e) {
+            e.preventDefault();
+
+            var $btn = $(this);
+            var platform = $btn.data('platform');
+            var promptId = $btn.data('prompt-id');
+            var shareUrl = $btn.data('share-url') || window.location.href;
+            var shareTitle = $btn.data('share-title') || document.title;
+            var shareText = $btn.data('share-text') || '';
+
+            var shareLinks = {
+                'twitter': 'https://twitter.com/intent/tweet?url=' + encodeURIComponent(shareUrl) + '&text=' + encodeURIComponent(shareTitle),
+                'facebook': 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(shareUrl),
+                'linkedin': 'https://www.linkedin.com/sharing/share-offsite/?url=' + encodeURIComponent(shareUrl),
+                'whatsapp': 'https://wa.me/?text=' + encodeURIComponent(shareTitle + ' ' + shareUrl),
+                'telegram': 'https://t.me/share/url?url=' + encodeURIComponent(shareUrl) + '&text=' + encodeURIComponent(shareTitle),
+                'email': 'mailto:?subject=' + encodeURIComponent(shareTitle) + '&body=' + encodeURIComponent(shareText + '\n\n' + shareUrl)
+            };
+
+            if (platform === 'copy') {
+                // Copy link to clipboard
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(shareUrl).then(function() {
+                        showNotification('Link copied to clipboard! 🔗', 'success');
+                    });
+                }
+                return;
+            }
+
+            if (platform === 'native' && navigator.share) {
+                // Use native share if available
+                navigator.share({
+                    title: shareTitle,
+                    text: shareText,
+                    url: shareUrl
+                }).then(function() {
+                    trackShare(promptId, 'native');
+                }).catch(function(err) {
+                    console.log('Share cancelled or failed:', err);
+                });
+                return;
+            }
+
+            // Open share window
+            if (shareLinks[platform]) {
+                window.open(shareLinks[platform], '_blank', 'width=600,height=400');
+                trackShare(promptId, platform);
+                showNotification('Shared! Thank you for spreading the word 🚀', 'success');
+            }
+        });
+
+        /**
+         * Track Share Action
+         */
+        function trackShare(promptId, platform) {
+            if (!promptId) return;
+
+            $.post(epicPromptsTheme.ajaxurl, {
+                action: 'share_prompt',
+                nonce: epicPromptsTheme.nonce,
+                prompt_id: promptId,
+                platform: platform
+            });
+        }
+
+        /**
+         * Advanced Search with Filters
+         */
+        $('#advanced-search-form').on('submit', function(e) {
+            e.preventDefault();
+
+            var $form = $(this);
+            var $results = $('#search-results');
+            var $loading = $('#search-loading');
+
+            var formData = {
+                action: 'search_prompts',
+                nonce: epicPromptsTheme.nonce,
+                search: $form.find('[name="search"]').val(),
+                platform: $form.find('[name="platform"]').val(),
+                category: $form.find('[name="category"]').val(),
+                prompt_type: $form.find('[name="prompt_type"]').val(),
+                sort_by: $form.find('[name="sort_by"]').val(),
+                page: 1
+            };
+
+            $.ajax({
+                url: epicPromptsTheme.ajaxurl,
+                type: 'POST',
+                data: formData,
+                beforeSend: function() {
+                    $loading.show();
+                    $results.empty();
+                },
+                success: function(response) {
+                    $loading.hide();
+
+                    if (response.success && response.data.results) {
+                        displaySearchResults(response.data.results, $results);
+
+                        // Show pagination if needed
+                        if (response.data.pages > 1) {
+                            displayPagination(response.data.pages, response.data.current_page);
+                        }
+                    } else {
+                        $results.html('<p class="no-results">No prompts found. Try different filters.</p>');
+                    }
+                },
+                error: function() {
+                    $loading.hide();
+                    showNotification('Search failed. Please try again.', 'error');
+                }
+            });
+        });
+
+        /**
+         * Display Search Results
+         */
+        function displaySearchResults(results, $container) {
+            if (!results || results.length === 0) {
+                $container.html('<p class="no-results">No prompts found.</p>');
+                return;
+            }
+
+            var html = '<div class="prompts-grid">';
+
+            results.forEach(function(prompt) {
+                html += '<div class="prompt-card">';
+                html += '  <h3><a href="' + prompt.url + '">' + prompt.title + '</a></h3>';
+                html += '  <p>' + prompt.excerpt + '</p>';
+                html += '  <div class="prompt-meta">';
+                html += '    <span class="platform">' + prompt.platform + '</span>';
+                html += '    <span class="stats">👁️ ' + prompt.views + ' | ⭐ ' + prompt.rating.toFixed(1) + '</span>';
+                html += '  </div>';
+                html += '</div>';
+            });
+
+            html += '</div>';
+
+            $container.html(html);
+        }
+
+        /**
+         * Display Pagination
+         */
+        function displayPagination(totalPages, currentPage) {
+            // Implement pagination UI
+            // This is a placeholder - full implementation would go in the search page template
+        }
+
     }); // document.ready
 
 })(jQuery);
