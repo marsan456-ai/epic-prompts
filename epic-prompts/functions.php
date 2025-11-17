@@ -253,8 +253,118 @@ function epic_prompts_get_category($prompt_id) {
 }
 
 /**
+ * Add favicon and app icons
+ */
+function epic_prompts_add_favicon() {
+    $favicon_url = get_theme_mod('epic_prompts_favicon');
+    if (!$favicon_url) {
+        // Use default favicon if custom not set
+        $favicon_url = get_template_directory_uri() . '/assets/images/favicon.ico';
+    }
+
+    echo '<link rel="icon" type="image/x-icon" href="' . esc_url($favicon_url) . '">' . "\n";
+    echo '<link rel="apple-touch-icon" sizes="180x180" href="' . esc_url(str_replace('.ico', '-180x180.png', $favicon_url)) . '">' . "\n";
+    echo '<link rel="icon" type="image/png" sizes="32x32" href="' . esc_url(str_replace('.ico', '-32x32.png', $favicon_url)) . '">' . "\n";
+    echo '<link rel="icon" type="image/png" sizes="16x16" href="' . esc_url(str_replace('.ico', '-16x16.png', $favicon_url)) . '">' . "\n";
+}
+add_action('wp_head', 'epic_prompts_add_favicon', 0);
+
+/**
+ * Add async/defer attributes to scripts for performance
+ */
+function epic_prompts_defer_scripts($tag, $handle, $src) {
+    // Scripts to defer (non-critical)
+    $defer_scripts = array(
+        'epic-prompts-main',
+        'clipboard-js',
+        'canvas-confetti'
+    );
+
+    // Scripts to load async
+    $async_scripts = array();
+
+    if (in_array($handle, $defer_scripts)) {
+        return str_replace(' src', ' defer src', $tag);
+    }
+
+    if (in_array($handle, $async_scripts)) {
+        return str_replace(' src', ' async src', $tag);
+    }
+
+    return $tag;
+}
+add_filter('script_loader_tag', 'epic_prompts_defer_scripts', 10, 3);
+
+/**
+ * Add preconnect for external domains (performance optimization)
+ */
+function epic_prompts_add_preconnect() {
+    echo '<link rel="preconnect" href="https://fonts.googleapis.com">' . "\n";
+    echo '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' . "\n";
+    echo '<link rel="dns-prefetch" href="//cdn.jsdelivr.net">' . "\n";
+}
+add_action('wp_head', 'epic_prompts_add_preconnect', 0);
+
+/**
+ * Improve accessibility - add skip to content link
+ */
+function epic_prompts_skip_link() {
+    echo '<a class="skip-link screen-reader-text" href="#main-content">' . esc_html__('Skip to content', 'epic-prompts') . '</a>' . "\n";
+}
+add_action('wp_body_open', 'epic_prompts_skip_link', 1);
+
+/**
+ * Add theme color for mobile browsers
+ */
+function epic_prompts_theme_color() {
+    echo '<meta name="theme-color" content="#6366F1">' . "\n";
+    echo '<meta name="msapplication-TileColor" content="#6366F1">' . "\n";
+}
+add_action('wp_head', 'epic_prompts_theme_color', 0);
+
+/**
+ * Add proper alt text to avatars
+ */
+function epic_prompts_avatar_alt_text($avatar, $id_or_email, $size, $default, $alt, $args) {
+    if (empty($alt)) {
+        $user = false;
+
+        if (is_numeric($id_or_email)) {
+            $user = get_user_by('id', $id_or_email);
+        } elseif (is_object($id_or_email) && isset($id_or_email->user_id)) {
+            $user = get_user_by('id', $id_or_email->user_id);
+        } elseif (is_string($id_or_email)) {
+            $user = get_user_by('email', $id_or_email);
+        }
+
+        if ($user && is_object($user)) {
+            $alt = sprintf(__('%s\'s avatar', 'epic-prompts'), $user->display_name);
+            $avatar = str_replace(' alt=\'\'', ' alt=\'' . esc_attr($alt) . '\'', $avatar);
+        }
+    }
+
+    return $avatar;
+}
+add_filter('get_avatar', 'epic_prompts_avatar_alt_text', 10, 6);
+
+/**
+ * Disable emojis for performance (optional)
+ */
+function epic_prompts_disable_emojis() {
+    remove_action('wp_head', 'print_emoji_detection_script', 7);
+    remove_action('admin_print_scripts', 'print_emoji_detection_script');
+    remove_action('wp_print_styles', 'print_emoji_styles');
+    remove_action('admin_print_styles', 'print_emoji_styles');
+    remove_filter('the_content_feed', 'wp_staticize_emoji');
+    remove_filter('comment_text_rss', 'wp_staticize_emoji');
+    remove_filter('wp_mail', 'wp_staticize_emoji_for_email');
+}
+// Uncomment to enable: add_action('init', 'epic_prompts_disable_emojis');
+
+/**
  * Load theme includes
  */
+require_once get_template_directory() . '/includes/seo-functions.php';
 require_once get_template_directory() . '/includes/widgets.php';
 require_once get_template_directory() . '/includes/shortcodes.php';
 require_once get_template_directory() . '/includes/customizer.php';
