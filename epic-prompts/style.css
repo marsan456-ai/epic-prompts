@@ -1,0 +1,535 @@
+/*
+Theme Name: Epic Prompts
+Theme URI: https://epic-prompts.com
+Author: Epic Prompts Team
+Author URI: https://epic-prompts.com
+Description: A gamified theme for sharing and discovering AI prompts
+Version: 1.0.0
+License: GNU General Public License v2 or later
+License URI: http://www.gnu.org/licenses/gpl-2.0.html
+Text Domain: epic-prompts
+Tags: custom-background, custom-logo, custom-menu, featured-images, threaded-comments, translation-ready
+*/
+
+/* ===========================
+   CSS Reset & Base Styles
+   =========================== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --primary: #6366F1;
+    --secondary: #EC4899;
+    --accent: #10B981;
+    --background: #F9FAFB;
+    --text: #111827;
+    --text-light: #6B7280;
+    --border: #E5E7EB;
+    --white: #FFFFFF;
+    --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background-color: var(--background);
+    color: var(--text);
+    line-height: 1.6;
+}
+
+a {
+    color: var(--primary);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+a:hover {
+    color: var(--secondary);
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* ===========================
+   Layout
+   =========================== */
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+.container-wide {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+/* ===========================
+   Header
+   =========================== */
+
+.site-header {
+    background-color: var(--white);
+    box-shadow: var(--shadow);
+    padding: 1rem 0;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.site-logo h1 {
+    font-size: 1.5rem;
+    color: var(--primary);
+    font-weight: 700;
+}
+
+.site-logo span {
+    color: var(--secondary);
+}
+
+.main-nav ul {
+    display: flex;
+    list-style: none;
+    gap: 2rem;
+}
+
+.main-nav a {
+    color: var(--text);
+    font-weight: 500;
+}
+
+.user-menu {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.user-stats {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.level-badge {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: var(--white);
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-weight: 600;
+    font-size: 0.75rem;
+}
+
+.xp-display {
+    color: var(--text-light);
+}
+
+/* ===========================
+   Buttons
+   =========================== */
+
+.btn {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+}
+
+.btn-primary {
+    background-color: var(--primary);
+    color: var(--white);
+}
+
+.btn-primary:hover {
+    background-color: #4F46E5;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.btn-secondary {
+    background-color: var(--secondary);
+    color: var(--white);
+}
+
+.btn-secondary:hover {
+    background-color: #DB2777;
+}
+
+.btn-outline {
+    background-color: transparent;
+    border: 2px solid var(--primary);
+    color: var(--primary);
+}
+
+.btn-outline:hover {
+    background-color: var(--primary);
+    color: var(--white);
+}
+
+/* ===========================
+   Grid & Cards
+   =========================== */
+
+.prompts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
+}
+
+.prompt-card {
+    background: var(--white);
+    border-radius: 0.75rem;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.prompt-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+}
+
+.prompt-card-image {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+}
+
+.prompt-card-content {
+    padding: 1rem;
+}
+
+.prompt-card-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.prompt-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.prompt-card-author {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--text-light);
+}
+
+.author-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+}
+
+.prompt-card-stats {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.875rem;
+    color: var(--text-light);
+}
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.badge-platform {
+    background-color: #DBEAFE;
+    color: #1E40AF;
+}
+
+.badge-category {
+    background-color: #FCE7F3;
+    color: #9F1239;
+}
+
+.badge-verified {
+    background-color: #D1FAE5;
+    color: #065F46;
+}
+
+/* ===========================
+   Reactions
+   =========================== */
+
+.reactions-container {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.reaction-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 9999px;
+    background-color: var(--background);
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.875rem;
+}
+
+.reaction-btn:hover {
+    border-color: var(--primary);
+    transform: scale(1.05);
+}
+
+.reaction-btn.active {
+    background-color: var(--primary);
+    color: var(--white);
+    border-color: var(--primary);
+}
+
+.reaction-emoji {
+    font-size: 1.25rem;
+}
+
+.reaction-count {
+    font-weight: 600;
+}
+
+/* ===========================
+   Single Prompt Page
+   =========================== */
+
+.single-prompt-hero {
+    background: var(--white);
+    border-radius: 1rem;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow);
+}
+
+.prompt-image-container {
+    margin-bottom: 1.5rem;
+}
+
+.prompt-main-image {
+    width: 100%;
+    max-height: 600px;
+    object-fit: contain;
+    border-radius: 0.5rem;
+}
+
+.prompt-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: 1.5rem;
+}
+
+.prompt-title {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.prompt-text-box {
+    background-color: var(--background);
+    border-left: 4px solid var(--primary);
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    margin: 1.5rem 0;
+}
+
+.prompt-text {
+    font-family: 'Courier New', monospace;
+    font-size: 1rem;
+    line-height: 1.8;
+    color: var(--text);
+}
+
+.copy-prompt-btn {
+    margin-top: 1rem;
+}
+
+/* ===========================
+   Leaderboard
+   =========================== */
+
+.leaderboard-table {
+    background: var(--white);
+    border-radius: 1rem;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+}
+
+.leaderboard-row {
+    display: grid;
+    grid-template-columns: 60px 1fr 100px 150px;
+    gap: 1rem;
+    padding: 1rem;
+    border-bottom: 1px solid var(--border);
+    align-items: center;
+}
+
+.leaderboard-row:hover {
+    background-color: var(--background);
+}
+
+.rank-number {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-light);
+}
+
+.rank-number.top-3 {
+    color: var(--secondary);
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.user-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+}
+
+/* ===========================
+   Filters & Search
+   =========================== */
+
+.filters-container {
+    background: var(--white);
+    padding: 1.5rem;
+    border-radius: 0.75rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow);
+}
+
+.filter-group {
+    margin-bottom: 1rem;
+}
+
+.filter-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.search-input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid var(--border);
+    border-radius: 0.5rem;
+    font-size: 1rem;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+/* ===========================
+   Responsive
+   =========================== */
+
+@media (max-width: 768px) {
+    .prompts-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .main-nav ul {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .header-content {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .leaderboard-row {
+        grid-template-columns: 40px 1fr;
+    }
+
+    .rank-number {
+        font-size: 1.25rem;
+    }
+}
+
+/* ===========================
+   Animations
+   =========================== */
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes confetti {
+    0% {
+        transform: scale(0) rotate(0deg);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1.5) rotate(360deg);
+        opacity: 0;
+    }
+}
+
+.xp-notification {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: var(--white);
+    padding: 2rem 3rem;
+    border-radius: 1rem;
+    font-size: 1.5rem;
+    font-weight: 700;
+    z-index: 9999;
+    animation: fadeIn 0.3s ease;
+    box-shadow: var(--shadow-lg);
+}
