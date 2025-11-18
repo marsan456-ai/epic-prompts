@@ -1,0 +1,62 @@
+{
+  "version": "1.0",
+  "generated_date": "2025-11-18",
+  "total_prompts": 5,
+  "prompts": [
+    {
+      "title": "Professional Email Writer for Customer Service",
+      "prompt_text": "You are a professional email writer specializing in customer service. Write a polite, empathetic, and solution-oriented email response to a customer complaint about [DESCRIBE ISSUE]. The email should:\n\n1. Acknowledge the customer's frustration\n2. Apologize sincerely for the inconvenience\n3. Explain what happened (if known)\n4. Provide a clear solution or next steps\n5. Offer compensation or goodwill gesture if appropriate\n6. End with reassurance and contact information\n\nTone: Professional, empathetic, solution-focused\nLength: 150-250 words\nFormat: Standard business email",
+      "description": "This prompt helps customer service teams craft professional, empathetic email responses to customer complaints. It ensures all key elements of a good service recovery email are included while maintaining a consistent professional tone.",
+      "platform": "ChatGPT",
+      "prompt_type": "Text Generation",
+      "category": "Business & Marketing",
+      "tags": ["email", "customer-service", "business-communication", "professional-writing"],
+      "difficulty": "beginner",
+      "estimated_tokens": 180
+    },
+    {
+      "title": "Stunning Product Photography in Studio Setting",
+      "prompt_text": "Professional product photography, [PRODUCT NAME] centered on clean white background, studio lighting setup with soft box lights from 45-degree angles, subtle shadows for depth, high-end commercial photography style, sharp focus on product details, 8k resolution, photorealistic, clean composition, --ar 1:1 --style raw --v 6",
+      "description": "Creates professional studio-quality product photos perfect for e-commerce, catalogs, or marketing materials. Adjust the product name and you can generate consistent, high-quality product images with proper lighting and composition.",
+      "platform": "Midjourney",
+      "prompt_type": "Image Generation",
+      "category": "E-commerce & Product",
+      "tags": ["product-photography", "studio-lighting", "e-commerce", "commercial"],
+      "difficulty": "intermediate",
+      "estimated_tokens": 65
+    },
+    {
+      "title": "Python Function Documentation Generator",
+      "prompt_text": "Generate comprehensive documentation for the following Python function. Include:\n\n1. A clear description of what the function does\n2. Parameter descriptions with types\n3. Return value description with type\n4. Example usage with sample input/output\n5. Any exceptions that might be raised\n6. Time/space complexity if relevant\n\nFormat the documentation in Google-style docstring format.\n\nFunction to document:\n[PASTE YOUR FUNCTION HERE]",
+      "description": "Automatically generates professional, comprehensive documentation for Python functions in Google-style docstring format. Perfect for maintaining code documentation standards across your project.",
+      "platform": "Claude",
+      "prompt_type": "Code Generation",
+      "category": "Programming & Development",
+      "tags": ["python", "documentation", "docstring", "code-quality"],
+      "difficulty": "intermediate",
+      "estimated_tokens": 120
+    },
+    {
+      "title": "Social Media Content Calendar Planner",
+      "prompt_text": "Create a 30-day social media content calendar for [BRAND/BUSINESS NAME] with the following specifications:\n\nBusiness Type: [e.g., Coffee Shop, Tech Startup, Fashion Brand]\nTarget Audience: [describe your audience]\nPlatforms: [Instagram, LinkedIn, Twitter, etc.]\nPosting Frequency: [e.g., 5 posts per week]\nContent Pillars: [e.g., Educational, Promotional, Entertainment, User-Generated]\n\nFor each post, provide:\n- Date and time\n- Platform\n- Content type (image, video, carousel, story)\n- Caption with hashtags\n- Content pillar category\n- Call-to-action\n\nFormat as a table with columns: Date, Platform, Type, Caption, CTA, Pillar",
+      "description": "Generates a complete month-long social media content calendar tailored to your brand. Includes strategic post types, captions, hashtags, and CTAs organized by content pillars for balanced engagement.",
+      "platform": "ChatGPT",
+      "prompt_type": "Strategic Planning",
+      "category": "Social Media & Influencer",
+      "tags": ["social-media", "content-calendar", "marketing-strategy", "planning"],
+      "difficulty": "beginner",
+      "estimated_tokens": 200
+    },
+    {
+      "title": "Cinematic Aerial Drone Shot of Coastal Landscape",
+      "prompt_text": "Cinematic aerial drone footage, sweeping over dramatic coastal cliffs at golden hour, waves crashing against rocks below, warm sunset light casting long shadows, camera movement: slow forward dolly with gentle descent, professional color grading with teal and orange tones, 4k resolution, stabilized footage, shallow depth of field on distant horizon, --motion 4 --camera slow-pan --duration 10s",
+      "description": "Creates stunning cinematic drone footage perfect for video projects, travel content, or establishing shots. The prompt specifies camera movement, lighting, and color grading for professional results.",
+      "platform": "Runway",
+      "prompt_type": "Video Generation",
+      "category": "Travel & Lifestyle",
+      "tags": ["drone", "aerial", "cinematic", "landscape", "video"],
+      "difficulty": "advanced",
+      "estimated_tokens": 85
+    }
+  ]
+}
